@@ -1,0 +1,218 @@
+# EVM WITH ARDUINO UNO R3
+
+## Project Description
+An Electronic Voting Machine (EVM) is a simple electronic device used to capture votes in elections. This project demonstrates how to create an EVM using Arduino Uno R3. The machine supports voting for four parties (BJP, BJD, JCB, DJC) and a NOTA (None of the Above) option. It also includes features to clear votes and display results. LEDs are used to indicate vote acceptance and results.
+
+---
+
+## Required Components
+
+### Electronics:
+1. **Arduino Uno R3** - 1 unit
+2. **16x2 I2C LCD Display** - 1 unit
+3. **Push Buttons** - 7 units
+   - 4 for parties (BJP, BJD, JCB, DJC)
+   - 1 for NOTA
+   - 1 for checking results
+   - 1 for clearing votes
+4. **Resistors** - 7 units (10kΩ each for pull-up configuration, if not using internal pull-ups)
+5. **LEDs** - 2 units
+   - 1 for vote acceptance
+   - 1 for result display
+6. **Connecting Wires**
+7. **Breadboard**
+8. **5V Power Supply or USB cable**
+
+---
+
+### Pin-to-Pin Connections
+
+| Component               | Arduino Uno R3 Pin |
+|-------------------------|---------------------|
+| Button for BJP (v1)     | Pin 7              |
+| Button for BJD (v2)     | Pin 6              |
+| Button for JCB (v3)     | Pin 5              |
+| Button for DJC (v4)     | Pin 4              |
+| Button for Results (v5) | Pin 3              |
+| Button for NOTA (v6)    | Pin 2              |
+| Button for Clear (v7)   | Pin 8              |
+| Vote Acceptance LED     | Pin 12            |
+| Results Display LED     | Pin 13            |
+| I2C LCD SDA             | A4 (SDA)          |
+| I2C LCD SCL             | A5 (SCL)          |
+| 5V Power Supply         | 5V and GND        |
+
+---
+
+## Arduino Code
+
+```cpp
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#define v1 7  // Button for BJP
+#define v2 6  // Button for BJD
+#define v3 5  // Button for JCB
+#define v4 4  // Button for DJC
+#define v5 3  // Button to check results
+#define v6 2  // NOTA Button
+#define v7 8  // CLEAR Button
+
+#define voteAcceptLED 12  // LED to indicate vote acceptance
+#define resultLED 13      // LED to indicate results display
+
+int voteBJP = 0;
+int voteBJD = 0;
+int voteJCB = 0;
+int voteDJC = 0;
+int voteNOTA = 0; // Variable for NOTA votes
+
+void setup() {
+  pinMode(v1, INPUT_PULLUP);
+  pinMode(v2, INPUT_PULLUP);
+  pinMode(v3, INPUT_PULLUP);
+  pinMode(v4, INPUT_PULLUP);
+  pinMode(v5, INPUT_PULLUP);
+  pinMode(v6, INPUT_PULLUP);
+  pinMode(v7, INPUT_PULLUP);
+
+  pinMode(voteAcceptLED, OUTPUT);  // LED to show vote registration
+  pinMode(resultLED, OUTPUT);      // LED to show results check
+
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("INDIAN EVM");         // Changed title
+  lcd.setCursor(0, 1);
+  lcd.print("Voting Machine");
+
+  delay(2000); // Display the message for 2 seconds
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("BJP");
+  lcd.setCursor(5, 0);
+  lcd.print("BJD");
+  lcd.setCursor(9, 0);
+  lcd.print("JCB");
+  lcd.setCursor(13, 0);
+  lcd.print("DJC");
+  lcd.setCursor(0, 1);
+  lcd.print("NOTA");
+}
+
+void loop() {
+  // Display vote counts
+  lcd.setCursor(0, 0);
+  lcd.print("BJP:");
+  lcd.print(voteBJP);
+  lcd.setCursor(5, 0);
+  lcd.print("BJD:");
+  lcd.print(voteBJD);
+  lcd.setCursor(9, 0);
+  lcd.print("JCB:");
+  lcd.print(voteJCB);
+  lcd.setCursor(13, 0);
+  lcd.print("DJC:");
+  lcd.print(voteDJC);
+  lcd.setCursor(0, 1);
+  lcd.print("NOTA:");
+  lcd.print(voteNOTA);
+
+  // Check if any vote button is pressed
+  if (digitalRead(v1) == LOW) {
+    digitalWrite(voteAcceptLED, HIGH);  // Light up LED for vote
+    voteBJP++;
+    delay(200); // Debounce delay
+    while (digitalRead(v1) == LOW); // Wait until button is released
+    digitalWrite(voteAcceptLED, LOW); // Turn off LED
+    delay(1000); // Wait a moment before returning to normal screen
+  }
+
+  if (digitalRead(v2) == LOW) {
+    digitalWrite(voteAcceptLED, HIGH);
+    voteBJD++;
+    delay(200);
+    while (digitalRead(v2) == LOW);
+    digitalWrite(voteAcceptLED, LOW);
+    delay(1000);
+  }
+
+  if (digitalRead(v3) == LOW) {
+    digitalWrite(voteAcceptLED, HIGH);
+    voteJCB++;
+    delay(200);
+    while (digitalRead(v3) == LOW);
+    digitalWrite(voteAcceptLED, LOW);
+    delay(1000);
+  }
+
+  if (digitalRead(v4) == LOW) {
+    digitalWrite(voteAcceptLED, HIGH);
+    voteDJC++;
+    delay(200);
+    while (digitalRead(v4) == LOW);
+    digitalWrite(voteAcceptLED, LOW);
+    delay(1000);
+  }
+
+  if (digitalRead(v6) == LOW) { // NOTA button pressed
+    digitalWrite(voteAcceptLED, HIGH);
+    voteNOTA++;
+    delay(200);
+    while (digitalRead(v6) == LOW);
+    digitalWrite(voteAcceptLED, LOW);
+    delay(1000);
+  }
+
+  // Check if the CLEAR button is pressed
+  if (digitalRead(v7) == LOW) {
+    delay(200); // Debounce
+    voteBJP = voteBJD = voteJCB = voteDJC = voteNOTA = 0;  // Reset votes
+    lcd.clear();
+    lcd.print("Votes Cleared");
+    delay(2000); // Wait for 2 seconds
+    lcd.clear();
+    lcd.print("Ready to Vote");
+  }
+
+  // Check the result if the results button (v5) is pressed
+  if (digitalRead(v5) == LOW) {
+    digitalWrite(resultLED, HIGH);  // Light up LED for results
+    delay(500); // Short delay before showing results
+
+    lcd.clear();
+    lcd.print("Results:");
+
+    lcd.setCursor(0, 1);
+    lcd.print("BJP: ");
+    lcd.print(voteBJP);
+    delay(1500);
+
+    lcd.clear();
+    lcd.print("BJD: ");
+    lcd.print(voteBJD);
+    delay(1500);
+
+    lcd.clear();
+    lcd.print("JCB: ");
+    lcd.print(voteJCB);
+    delay(1500);
+
+    lcd.clear();
+    lcd.print("DJC: ");
+    lcd.print(voteDJC);
+    delay(1500);
+
+    lcd.clear();
+    lcd.print("NOTA: ");
+    lcd.print(voteNOTA);
+    delay(2000);
+
+    // Display who won or if it's a tie
+    lcd.clear();
+    int totalVotes = voteBJP + voteBJD + voteJCB + voteDJC;
+    if (totalVotes == 0) {
+      lcd.print("No Votes Cast");
+    } else {
+      if ((
